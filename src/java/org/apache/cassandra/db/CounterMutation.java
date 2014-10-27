@@ -44,11 +44,13 @@ public class CounterMutation implements IMutation
 
     private final RowMutation rowMutation;
     private final ConsistencyLevel consistency;
+    private final UUID clientID;
 
-    public CounterMutation(RowMutation rowMutation, ConsistencyLevel consistency)
+    public CounterMutation(RowMutation rowMutation, ConsistencyLevel consistency, UUID clientID)
     {
         this.rowMutation = rowMutation;
         this.consistency = consistency;
+        this.clientID = clientID;
     }
 
     public String getKeyspaceName()
@@ -167,6 +169,7 @@ public class CounterMutation implements IMutation
         StringBuilder buff = new StringBuilder("CounterMutation(");
         buff.append(rowMutation.toString(shallow));
         buff.append(", ").append(consistency.toString());
+        buff.append(", ").append(clientID.toString());
         return buff.append(")").toString();
     }
 }
@@ -175,19 +178,23 @@ class CounterMutationSerializer implements IVersionedSerializer<CounterMutation>
 {
     public void serialize(CounterMutation cm, DataOutput out, int version) throws IOException
     {
+    	//TODO
         RowMutation.serializer.serialize(cm.rowMutation(), out, version);
         out.writeUTF(cm.consistency().name());
+        
     }
 
     public CounterMutation deserialize(DataInput in, int version) throws IOException
     {
         RowMutation rm = RowMutation.serializer.deserialize(in, version);
         ConsistencyLevel consistency = Enum.valueOf(ConsistencyLevel.class, in.readUTF());
-        return new CounterMutation(rm, consistency);
+        //TODO
+        return new CounterMutation(rm, consistency,null);
     }
 
     public long serializedSize(CounterMutation cm, int version)
     {
+    	//TODO
         return RowMutation.serializer.serializedSize(cm.rowMutation(), version)
              + TypeSizes.NATIVE.sizeof(cm.consistency().name());
     }

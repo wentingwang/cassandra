@@ -17,9 +17,8 @@
  */
 package org.apache.cassandra.transport;
 
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
-
-import org.jboss.netty.channel.Channel;
 
 import org.apache.cassandra.auth.IAuthenticator;
 import org.apache.cassandra.auth.ISaslAwareAuthenticator;
@@ -27,8 +26,8 @@ import org.apache.cassandra.auth.ISaslAwareAuthenticator.SaslAuthenticator;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.service.ClientState;
 import org.apache.cassandra.service.QueryState;
-
 import org.cliffc.high_scale_lib.NonBlockingHashMap;
+import org.jboss.netty.channel.Channel;
 
 public class ServerConnection extends Connection
 {

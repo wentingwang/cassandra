@@ -192,7 +192,7 @@ public class BatchStatement implements CQLStatement, MeasurableForPreparedCache
             if (mutation == null)
             {
                 rm = new RowMutation(ksName, key);
-                mutation = type == Type.COUNTER ? new CounterMutation(rm, cl) : rm;
+                mutation = type == Type.COUNTER ? new CounterMutation(rm, cl, null) : rm;
                 ksMap.put(key, mutation);
             }
             else

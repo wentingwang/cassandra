@@ -28,19 +28,26 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import com.google.common.base.Splitter;
+import java.util.UUID;
 
 import org.apache.cassandra.auth.IAuthenticator;
+import org.apache.cassandra.config.EncryptionOptions.ClientEncryptionOptions;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.db.marshal.Int32Type;
 import org.apache.cassandra.db.marshal.UTF8Type;
-import org.apache.cassandra.transport.messages.*;
+import org.apache.cassandra.transport.messages.AuthResponse;
+import org.apache.cassandra.transport.messages.CredentialsMessage;
+import org.apache.cassandra.transport.messages.ExecuteMessage;
+import org.apache.cassandra.transport.messages.OptionsMessage;
+import org.apache.cassandra.transport.messages.PrepareMessage;
+import org.apache.cassandra.transport.messages.QueryMessage;
+import org.apache.cassandra.transport.messages.RegisterMessage;
+import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.Hex;
 import org.apache.cassandra.utils.MD5Digest;
 
-import static org.apache.cassandra.config.EncryptionOptions.ClientEncryptionOptions;
+import com.google.common.base.Splitter;
 
 public class Client extends SimpleClient
 {
@@ -128,7 +135,8 @@ public class Client extends SimpleClient
                     return null;
                 }
             }
-            return new QueryMessage(query, new QueryOptions(ConsistencyLevel.ONE, Collections.<ByteBuffer>emptyList(), false, pageSize, null, null));
+            //TODO
+            return new QueryMessage(query, new QueryOptions(ConsistencyLevel.ONE, Collections.<ByteBuffer>emptyList(), false, pageSize, null,null,null));
         }
         else if (msgType.equals("PREPARE"))
         {

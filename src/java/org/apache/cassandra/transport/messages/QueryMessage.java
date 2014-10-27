@@ -82,18 +82,24 @@ public class QueryMessage extends Message.Request
 
     public final String query;
     public final QueryOptions options;
+    
 
     public QueryMessage(String query, QueryOptions options)
     {
         super(Type.QUERY);
         this.query = query;
         this.options = options;
+        
     }
 
     public Message.Response execute(QueryState state)
     {
         try
         {
+        	logger.info(query);
+        	if(options.getClientID()!=null){
+        		logger.info(options.getClientID().toString());
+        	}
             if (options.getPageSize() == 0)
                 throw new ProtocolException("The page size cannot be 0");
 
@@ -115,7 +121,7 @@ public class QueryMessage extends Message.Request
 
                 Tracing.instance.begin("Execute CQL3 query", builder.build());
             }
-
+            
             Message.Response response = state.getClientState().getCQLQueryHandler().process(query, state, options);
             if (options.skipMetadata() && response instanceof ResultMessage.Rows)
                 ((ResultMessage.Rows)response).result.metadata.setSkipMetadata();

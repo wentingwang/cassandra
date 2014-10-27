@@ -555,7 +555,7 @@ public abstract class ModificationStatement implements CQLStatement, MeasurableF
         else
             cl.validateForWrite(cfm.ksName);
 
-        Collection<? extends IMutation> mutations = getMutations(options.getValues(), false, cl, queryState.getTimestamp());
+        Collection<? extends IMutation> mutations = getMutations(options.getValues(), false, cl, queryState.getTimestamp(), options.getClientID());
         if (!mutations.isEmpty())
             StorageProxy.mutateWithTriggers(mutations, cl, false);
 
@@ -726,10 +726,32 @@ public abstract class ModificationStatement implements CQLStatement, MeasurableF
             ColumnFamily cf = UnsortedColumns.factory.create(cfm);
             addUpdateForKey(cf, key, clusteringPrefix, params);
             RowMutation rm = new RowMutation(cfm.ksName, key, cf);
-            mutations.add(isCounter() ? new CounterMutation(rm, cl) : rm);
+            mutations.add(isCounter() ? new CounterMutation(rm, cl, null) : rm);
         }
         return mutations;
     }
+    
+	private Collection<? extends IMutation> getMutations(
+			List<ByteBuffer> variables, boolean local, ConsistencyLevel cl,
+			long now, UUID clientID) throws RequestExecutionException,
+			RequestValidationException {
+		List<ByteBuffer> keys = buildPartitionKeyNames(variables);
+		ColumnNameBuilder clusteringPrefix = createClusteringPrefixBuilder(variables);
+
+		UpdateParameters params = makeUpdateParameters(keys, clusteringPrefix,
+				variables, local, cl, now);
+
+		Collection<IMutation> mutations = new ArrayList<IMutation>();
+		for (ByteBuffer key : keys) {
+			ThriftValidation.validateKey(cfm, key);
+			ColumnFamily cf = UnsortedColumns.factory.create(cfm);
+			addUpdateForKey(cf, key, clusteringPrefix, params);
+			RowMutation rm = new RowMutation(cfm.ksName, key, cf);
+			mutations.add(isCounter() ? new CounterMutation(rm, cl, clientID)
+					: rm);
+		}
+		return mutations;
+	}
 
     public UpdateParameters makeUpdateParameters(Collection<ByteBuffer> keys,
                                                  ColumnNameBuilder prefix,

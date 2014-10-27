@@ -18,17 +18,16 @@
 package org.apache.cassandra.cql3;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
-
-import org.jboss.netty.buffer.ChannelBuffer;
+import java.util.UUID;
 
 import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.service.pager.PagingState;
 import org.apache.cassandra.transport.CBCodec;
 import org.apache.cassandra.transport.CBUtil;
+import org.jboss.netty.buffer.ChannelBuffer;
 
 /**
  * Options for a query.
@@ -59,9 +58,10 @@ public class QueryOptions
                         boolean skipMetadata,
                         int pageSize,
                         PagingState pagingState,
-                        ConsistencyLevel serialConsistency)
+                        ConsistencyLevel serialConsistency,
+                        UUID clientID)
     {
-        this(consistency, values, skipMetadata, new SpecificOptions(pageSize, pagingState, serialConsistency), 0);
+        this(consistency, values, skipMetadata, new SpecificOptions(pageSize, pagingState, serialConsistency, clientID), 0);
     }
 
     private QueryOptions(ConsistencyLevel consistency, List<ByteBuffer> values, boolean skipMetadata, SpecificOptions options, int protocolVersion)
@@ -126,20 +126,26 @@ public class QueryOptions
         return protocolVersion;
     }
 
+    public UUID getClientID() {
+		return options.clientID;
+	}
+    
     // Options that are likely to not be present in most queries
     private static class SpecificOptions
     {
-        private static final SpecificOptions DEFAULT = new SpecificOptions(-1, null, null);
+        private static final SpecificOptions DEFAULT = new SpecificOptions(-1, null, null,null);
 
         private final int pageSize;
         private final PagingState state;
         private final ConsistencyLevel serialConsistency;
+        private final UUID clientID;
 
-        private SpecificOptions(int pageSize, PagingState state, ConsistencyLevel serialConsistency)
+        private SpecificOptions(int pageSize, PagingState state, ConsistencyLevel serialConsistency, UUID clientID)
         {
             this.pageSize = pageSize;
             this.state = state;
             this.serialConsistency = serialConsistency == null ? ConsistencyLevel.SERIAL : serialConsistency;
+            this.clientID = clientID;
         }
     }
 
@@ -152,7 +158,8 @@ public class QueryOptions
             SKIP_METADATA,
             PAGE_SIZE,
             PAGING_STATE,
-            SERIAL_CONSISTENCY;
+            SERIAL_CONSISTENCY,
+            UUID;
 
             private static final Flag[] ALL_VALUES = values();
 
@@ -197,7 +204,8 @@ public class QueryOptions
                 int pageSize = flags.contains(Flag.PAGE_SIZE) ? body.readInt() : -1;
                 PagingState pagingState = flags.contains(Flag.PAGING_STATE) ? PagingState.deserialize(CBUtil.readValue(body)) : null;
                 ConsistencyLevel serialConsistency = flags.contains(Flag.SERIAL_CONSISTENCY) ? CBUtil.readConsistencyLevel(body) : ConsistencyLevel.SERIAL;
-                options = new SpecificOptions(pageSize, pagingState, serialConsistency);
+                UUID clientID = flags.contains(Flag.UUID)? CBUtil.readUUID(body) : null;
+                options = new SpecificOptions(pageSize, pagingState, serialConsistency, clientID);
             }
             return new QueryOptions(consistency, values, skipMetadata, options, version);
         }
@@ -219,6 +227,8 @@ public class QueryOptions
                 CBUtil.writeValue(options.getPagingState().serialize(), dest);
             if (flags.contains(Flag.SERIAL_CONSISTENCY))
                 CBUtil.writeConsistencyLevel(options.getSerialConsistency(), dest);
+            if (flags.contains(Flag.UUID))
+            	CBUtil.writeUUID(options.getClientID(), dest);
         }
 
         public int encodedSize(QueryOptions options, int version)
@@ -238,7 +248,8 @@ public class QueryOptions
                 size += CBUtil.sizeOfValue(options.getPagingState().serialize());
             if (flags.contains(Flag.SERIAL_CONSISTENCY))
                 size += CBUtil.sizeOfConsistencyLevel(options.getSerialConsistency());
-
+            if (flags.contains(Flag.UUID))
+            	size += CBUtil.sizeOfUUID(options.getClientID());
             return size;
         }
 
@@ -255,7 +266,11 @@ public class QueryOptions
                 flags.add(Flag.PAGING_STATE);
             if (options.getSerialConsistency() != ConsistencyLevel.SERIAL)
                 flags.add(Flag.SERIAL_CONSISTENCY);
+            if (options.getClientID() !=null)
+            	flags.add(Flag.UUID);
             return flags;
         }
     }
+
+	
 }
