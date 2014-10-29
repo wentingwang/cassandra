@@ -28,15 +28,15 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import com.google.common.collect.Iterables;
-
 import org.apache.cassandra.db.filter.NamesQueryFilter;
 import org.apache.cassandra.io.IVersionedSerializer;
 import org.apache.cassandra.net.MessageOut;
 import org.apache.cassandra.net.MessagingService;
-import org.apache.cassandra.db.ConsistencyLevel;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.HeapAllocator;
+import org.apache.cassandra.utils.UUIDSerializer;
+
+import com.google.common.collect.Iterables;
 
 public class CounterMutation implements IMutation
 {
@@ -46,6 +46,11 @@ public class CounterMutation implements IMutation
     private final ConsistencyLevel consistency;
     private final UUID clientID;
 
+    public CounterMutation(RowMutation rowMutation, ConsistencyLevel consistency)
+    {
+        this(rowMutation, consistency, null);
+    }
+    
     public CounterMutation(RowMutation rowMutation, ConsistencyLevel consistency, UUID clientID)
     {
         this.rowMutation = rowMutation;
@@ -81,6 +86,11 @@ public class CounterMutation implements IMutation
     public ConsistencyLevel consistency()
     {
         return consistency;
+    }
+    
+    public UUID clientID()
+    {
+    	return clientID;
     }
 
     public RowMutation makeReplicationMutation()
@@ -178,24 +188,23 @@ class CounterMutationSerializer implements IVersionedSerializer<CounterMutation>
 {
     public void serialize(CounterMutation cm, DataOutput out, int version) throws IOException
     {
-    	//TODO
         RowMutation.serializer.serialize(cm.rowMutation(), out, version);
         out.writeUTF(cm.consistency().name());
-        
+        UUIDSerializer.serializer.serialize(cm.clientID(), out, version);   
     }
 
     public CounterMutation deserialize(DataInput in, int version) throws IOException
     {
         RowMutation rm = RowMutation.serializer.deserialize(in, version);
         ConsistencyLevel consistency = Enum.valueOf(ConsistencyLevel.class, in.readUTF());
-        //TODO
-        return new CounterMutation(rm, consistency,null);
+        UUID clientID = UUIDSerializer.serializer.deserialize(in, version);
+        return new CounterMutation(rm, consistency,clientID);
     }
 
     public long serializedSize(CounterMutation cm, int version)
     {
-    	//TODO
         return RowMutation.serializer.serializedSize(cm.rowMutation(), version)
-             + TypeSizes.NATIVE.sizeof(cm.consistency().name());
+             + TypeSizes.NATIVE.sizeof(cm.consistency().name())
+             + TypeSizes.NATIVE.sizeof(cm.clientID());
     }
 }

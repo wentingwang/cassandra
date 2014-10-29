@@ -225,7 +225,7 @@ public class UpdateStatement extends AbstractModification
             }
         }
 
-        return (hasCounterColumn) ? new CounterMutation(rm, getConsistencyLevel(),null) : rm;
+        return (hasCounterColumn) ? new CounterMutation(rm, getConsistencyLevel()) : rm;
     }
 
     public String getColumnFamily()
